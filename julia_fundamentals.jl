@@ -104,6 +104,9 @@ For example
 # ╔═╡ 965f1fc5-5488-4b37-9144-32ca5008262a
 "harv"*" the larv"
 
+# ╔═╡ 6334ec08-681d-4a5c-a83b-fd4982845d1c
+
+
 # ╔═╡ 2c12d501-51e4-48d7-a875-774424ef4506
 md"""
 **Any questions so far?**
@@ -112,10 +115,71 @@ md"""
 # ╔═╡ bed3b97a-c45e-40f5-8eb7-80394708f313
 md"""
 ### tiny exercise #1
-Write a code block which finds all the perfect numbers between $1$ and $1000$.
+Test the Collatz conjecture up to n = 100.
 
-- A perfect number is an integer which can be written both as the product and the sum of its divisors. For instance, $1 + 2 + 3 = 6$ and $1*2*3 = 6$, $6$ is a perfect number.
+The Collatz conjecture says that, for any positive integer $q$, the sequence
+
+$$f(q) = q/2 \enspace \text{if}\enspace q \enspace\text{is even}$$
+$$f(q) = 3q + 1 \enspace \text{if}\enspace q \enspace\text{is odd}$$
+
+eventually reaches one.
+
+Make a single plot with two panels.
+
+- On one panel plot the first 100 positive integers with their stopping times, that is how long do they take to reach $1$.
+
+- On the other panel plot the first 100 positive integers with the largest value reached during their Collatz sequence.
 """
+
+# ╔═╡ 5119c9a5-7ad3-407b-85bd-df10021f8a50
+md"""
+### A solution to tiny exercise #1
+"""
+
+# ╔═╡ b36594e5-9cbe-4d8a-9724-05e9277afd62
+function collatz_path(q::Int64)
+	steps = 0
+	max_val = q
+	while q != 1
+		##-- applying a single step of the Collatz sequence
+		if q % 2 == 0
+			q = q/2
+		else
+			q = 3*q + 1
+		end
+		##-- updating the largest value seen so far
+		max_val = max(max_val, q)
+		steps += 1
+	end
+	return (steps, max_val)
+end
+
+# ╔═╡ 9317131b-a30b-4ef0-93c8-fcdd7cc2c85b
+let 
+	##-- number of integers to be testd
+	n_max = 10000
+	##-- two vectora to store the data 
+	stop_times = zeros(Int64, n_max)
+	max_vals = zeros(Int64, n_max)
+
+	## constructing the collatz path for each of the n_max integers
+	for qq = 1:n_max
+		stop_times[qq], max_vals[qq] = collatz_path(qq)
+	end
+
+	##-- making the plot
+
+	#-- panel with the stoping times
+	plot_times = plot(xlabel = "n", ylabel = "stoping time", legend = nothing, 
+		tickfontsize = 10)
+	scatter!(1:n_max, stop_times, marker = :d, ms = 2.5, c = :red)
+
+	#-- panel with the largest value visited
+	plot_max = plot(xlabel = "n", ylabel = "maximum value visited", legend = nothing)
+	scatter!(1:n_max, max_vals, ylim = (0, 10^5), marker = :^, c = :green, ms = 1.0)
+	
+	plot(plot_times, plot_max)
+end
 
 # ╔═╡ 72fd050d-f8da-45f7-a998-c04eae98cebc
 md"""
@@ -356,9 +420,13 @@ mediumbreak
 # ╠═c886195c-2f3e-4481-a338-a76f22409fdf
 # ╟─5aa6a480-a990-49a1-9698-62e3c7386ba6
 # ╠═965f1fc5-5488-4b37-9144-32ca5008262a
-# ╠═2c12d501-51e4-48d7-a875-774424ef4506
-# ╠═c6f58cef-3c0d-4ad5-a414-2fba48677cff
-# ╠═bed3b97a-c45e-40f5-8eb7-80394708f313
+# ╠═6334ec08-681d-4a5c-a83b-fd4982845d1c
+# ╟─2c12d501-51e4-48d7-a875-774424ef4506
+# ╟─c6f58cef-3c0d-4ad5-a414-2fba48677cff
+# ╟─bed3b97a-c45e-40f5-8eb7-80394708f313
+# ╟─5119c9a5-7ad3-407b-85bd-df10021f8a50
+# ╟─b36594e5-9cbe-4d8a-9724-05e9277afd62
+# ╟─9317131b-a30b-4ef0-93c8-fcdd7cc2c85b
 # ╟─ebc1bae6-439b-43af-8f23-48636ab987a4
 # ╟─72fd050d-f8da-45f7-a998-c04eae98cebc
 # ╟─d0ef136e-3000-4549-bc5d-0703a5b2a555
@@ -387,7 +455,7 @@ mediumbreak
 # ╠═091ea677-a40f-43bd-8c50-47400675effb
 # ╠═52c44af0-8829-42b9-9a2b-4ab355227e21
 # ╟─6b104f30-46ee-44ee-8385-0af4ad106043
-# ╠═91d3a6ad-052b-4a50-bd76-0bf38a4f7261
+# ╟─91d3a6ad-052b-4a50-bd76-0bf38a4f7261
 # ╠═443c655b-ad54-4c6b-929a-214837e2ee96
 # ╠═35c31230-f241-4fdf-9ff6-5ba65e50ad4f
 # ╠═c6887b20-a8c3-4c39-b3b4-e8d7ad39363a
@@ -399,7 +467,7 @@ mediumbreak
 # ╠═7c923fce-6d55-44b6-8498-593710f0177a
 # ╠═36e446b2-f1e2-4460-a704-298f53238300
 # ╠═385ded73-68e6-44e5-bc66-f5deaaa0be63
-# ╠═aafd7c94-3466-4ae8-8572-58d8d1a8761a
+# ╟─aafd7c94-3466-4ae8-8572-58d8d1a8761a
 # ╠═ae29e8b2-5393-493b-b097-32988b7572aa
 # ╠═fdd3d3f1-0a47-455a-9d69-324e3989e140
 # ╠═47967a1f-c3d0-4ad4-a0f0-17eb832fe1b5
