@@ -363,10 +363,134 @@ md"""
 
 
 # ╔═╡ 47967a1f-c3d0-4ad4-a0f0-17eb832fe1b5
+md"""
+### tiny exercise #2
+Simulate walkers on a discrete one dimensional chain.
 
+The rules are simple:
+- take a chain of $L$ cells
+
+- thee are $N$ walkers on the chain, with $N \ll L$, with randomly assigned initial poistions
+
+- walkers are solid, they interaction i sgiven by arigid collision, with walkers bouncing off of each other
+
+- each walker moves one cell to the left or right with a 50/50 probability
+
+- The chain has elastic edges, a walker reaching the edge bounces off os it
+
+"""
 
 # ╔═╡ 29608a51-4161-4d7f-98bb-21616af4605b
+md"""
+### A solution to tiny exercise #2
+"""
 
+# ╔═╡ eb123de0-3855-42a1-8b49-f69d3a4f59cf
+md"""
+First, we define a type to rpresent our walker!
+"""
+
+# ╔═╡ b1954585-153b-46bf-bd99-b2b0e81e2036
+abstract type abstract_walker end 
+
+# ╔═╡ 6abbd5d3-1414-470d-8a50-1d1b52df9e18
+mutable struct Walker <: abstract_walker 
+	pos::Int64 
+end 
+
+# ╔═╡ c974c3f7-ab40-48c4-9233-ccd98e9f63a9
+md"""
+Now we define the parameters of the chain 
+"""
+
+# ╔═╡ 53812282-ecbd-4fb5-abb4-d1cf039c7973
+half_chain_length = 120
+
+# ╔═╡ 2cd8f887-737f-46db-97f0-166f3d2d0175
+chain_sites = -half_chain_length:1:half_chain_length
+
+# ╔═╡ 072795aa-58ae-4116-a6ac-266d7ceaefbc
+md"""
+now we construct the functions to move walkers, make them interact, and make them bounce back off of the walls
+"""
+
+# ╔═╡ a1a81ce3-facd-4112-bf53-391c704864e1
+function move_walker!(walker::Walker)
+	"""
+	Moves a walker one step to the left or right with a 50/50 chance
+	"""
+	walker.pos += rand([-1,1])
+end
+
+# ╔═╡ e6eb8845-4ba9-4eb7-9288-c27caa970f1d
+function walker_action!(walker::Walker, walkers::Vector, half_chain_length::Int64)
+	"""
+	Interaction between two walkers. They bounce off of each other. 
+	Walker on the left moves one cell to the left and walker on the right moves
+	one cell to the right.
+	"""
+
+	## first check if a pair of walkers should interact
+	distances = walker.pos .- [walkers[aa].pos for aa = 1:length(walkers)]
+	walkers_to_interact = findall(x -> abs(x) == 1, distances)
+
+	if length(walkers_to_interact) == 0
+		if abs(walker.pos) >= half_chain_length
+			if walker.pos > 0 
+				walker.pos -= 2
+			elseif walker.pos < 0 
+				walker.pos += 2
+			end
+		else
+			move_walker!(walker)
+		end
+	elseif length(walkers_to_interact) == 1
+		posi = walkers_to_interact[1]
+		if distances[posi] > 0 
+			walker.pos += 2
+			walkers[posi].pos -= 2
+		elseif distances[posi] < 0
+			walker.pos -= 2
+			walkers[posi].pos += 2
+		else
+			for pp = 1:2
+				if distances[walkers_to_interact[pp]] > 0 
+					walkers[walkers_to_interact[pp]].pos -= 2
+				elseif distances[walkers_to_interact[pp]] < 0 
+					walkers[walkers_to_interact[pp]].pos += 2
+				end
+			end
+		end
+		
+	end 
+end
+
+# ╔═╡ f42fe364-7ea1-4af8-8fbc-cc38a222dfc7
+md"""
+Now we construct the functions to compute one time step 
+"""
+
+# ╔═╡ 07008185-25e5-4f00-b593-4d87e9a9a391
+function step!(walkers::Vector, half_chain_length::Int64, nwalkers::Int64)
+	##-- checking if a walker has reached the walls, and moving it
+	for ss = 1:nwalkers
+		walker_action!(walkers[ss], walkers, half_chain_length)
+	end 
+end 
+
+# ╔═╡ 55bed73c-d9c1-433c-a881-d680e78c8355
+md"""
+Initializing some walkers 
+"""
+
+# ╔═╡ 9537badf-0d34-4351-a13d-3e459996576d
+##-- number of walkers
+nwalkers = 4
+
+# ╔═╡ 75485cc5-38c0-4420-bd77-d12b1dce3aba
+md"""
+Running a simulation
+"""
 
 # ╔═╡ 2e9f9ab5-56e1-4194-b5d9-64a210615674
 md"""
@@ -376,6 +500,72 @@ In order to build a little argument in favor of our end goal, many-body simulati
 
 # ╔═╡ 7e8d3daf-0617-40e0-969b-3be707cd2164
 
+
+# ╔═╡ cdcf0765-9eb8-4ec5-a92b-a0a38739d949
+
+
+# ╔═╡ 1ae6196c-478c-47e7-9a4d-cd7d946034aa
+
+
+# ╔═╡ 1f6cf151-4880-4325-ba60-26623300d550
+md"""
+## Some helper functions
+"""
+
+# ╔═╡ c13e582d-c575-4fbc-b540-b859266468ba
+##-- sampling initial positions randomly, withouth repetition 
+function sample_init_posis(num_walkers::Int64, half_sites::Int64)
+	chain = Array(-half_sites:1:half_sites)
+	chain_length = length(chain)
+	posis = []
+	
+	for ii = 1:num_walkers
+		pos = rand(chain)
+		push!(posis, pos)
+		
+		deleteat!(chain, pos .== chain)
+	end 
+	return posis
+end
+
+# ╔═╡ fe9ecf82-fffc-4462-810f-9af08a227059
+walker_init_posis = sample_init_posis(nwalkers, half_chain_length)
+
+# ╔═╡ ca8083b0-dd31-4293-9c96-d076c52b742e
+walkers = [Walker(wposi) for wposi in walker_init_posis]
+
+# ╔═╡ a78098d2-4b87-46c5-8650-794555f36043
+begin
+	steps = 3000
+	positions = zeros(Int64, steps, nwalkers)
+	
+	for s = 1:steps
+		step!(walkers, half_chain_length, nwalkers)
+
+		positions[s,:] .= [walkers[kk].pos for kk = 1:nwalkers]
+	end
+end;
+
+# ╔═╡ 47d0112c-8acf-471f-998b-fad542372fed
+let
+
+	##-- making the figure
+
+	#- panel showing the trajectories
+	plo = plot(xlabel = "position", ylabel = "time steps", legend = nothing,
+		tickfontsize = 9)
+
+	plot!(1:steps, positions)
+	plot!([half_chain_length], linetype = :hline, c = :black, lw = 2.0)
+	plot!([-half_chain_length], linetype = :hline, c = :black, lw = 2.0)
+	
+	#- panel showing the histograms
+	his = plot(xlabel = "position", tickfontsize = 9, legend = nothing)
+	histogram!(positions, bins = range(-half_chain_length, half_chain_length, 
+		length = 60), normalize = true, alpha = 0.75)
+
+	plot(plo, his)
+end
 
 # ╔═╡ 8e543167-d872-4a97-a4a5-93bbd0eafbb8
 mediumbreak = html"<br><br>"
@@ -399,6 +589,12 @@ mediumbreak
 mediumbreak
 
 # ╔═╡ 6b104f30-46ee-44ee-8385-0af4ad106043
+mediumbreak
+
+# ╔═╡ 54c7af50-7a38-4d94-8975-015fbee8a1a6
+mediumbreak
+
+# ╔═╡ 381cb596-eb2f-47db-a71f-c62726572c67
 mediumbreak
 
 # ╔═╡ Cell order:
@@ -465,13 +661,37 @@ mediumbreak
 # ╠═adfed59c-31d7-46e9-bb9c-4cde56982720
 # ╠═03d6f7e5-ac2d-4210-ba51-2d65b01ae601
 # ╠═7c923fce-6d55-44b6-8498-593710f0177a
-# ╠═36e446b2-f1e2-4460-a704-298f53238300
+# ╟─36e446b2-f1e2-4460-a704-298f53238300
 # ╠═385ded73-68e6-44e5-bc66-f5deaaa0be63
+# ╟─54c7af50-7a38-4d94-8975-015fbee8a1a6
 # ╟─aafd7c94-3466-4ae8-8572-58d8d1a8761a
 # ╠═ae29e8b2-5393-493b-b097-32988b7572aa
 # ╠═fdd3d3f1-0a47-455a-9d69-324e3989e140
 # ╠═47967a1f-c3d0-4ad4-a0f0-17eb832fe1b5
-# ╠═29608a51-4161-4d7f-98bb-21616af4605b
+# ╟─29608a51-4161-4d7f-98bb-21616af4605b
+# ╟─eb123de0-3855-42a1-8b49-f69d3a4f59cf
+# ╠═b1954585-153b-46bf-bd99-b2b0e81e2036
+# ╠═6abbd5d3-1414-470d-8a50-1d1b52df9e18
+# ╟─c974c3f7-ab40-48c4-9233-ccd98e9f63a9
+# ╠═53812282-ecbd-4fb5-abb4-d1cf039c7973
+# ╠═2cd8f887-737f-46db-97f0-166f3d2d0175
+# ╟─072795aa-58ae-4116-a6ac-266d7ceaefbc
+# ╠═a1a81ce3-facd-4112-bf53-391c704864e1
+# ╠═e6eb8845-4ba9-4eb7-9288-c27caa970f1d
+# ╟─f42fe364-7ea1-4af8-8fbc-cc38a222dfc7
+# ╠═07008185-25e5-4f00-b593-4d87e9a9a391
+# ╟─55bed73c-d9c1-433c-a881-d680e78c8355
+# ╠═9537badf-0d34-4351-a13d-3e459996576d
+# ╠═fe9ecf82-fffc-4462-810f-9af08a227059
+# ╠═ca8083b0-dd31-4293-9c96-d076c52b742e
+# ╟─75485cc5-38c0-4420-bd77-d12b1dce3aba
+# ╠═a78098d2-4b87-46c5-8650-794555f36043
+# ╟─47d0112c-8acf-471f-998b-fad542372fed
+# ╟─381cb596-eb2f-47db-a71f-c62726572c67
 # ╟─2e9f9ab5-56e1-4194-b5d9-64a210615674
 # ╠═7e8d3daf-0617-40e0-969b-3be707cd2164
+# ╠═cdcf0765-9eb8-4ec5-a92b-a0a38739d949
+# ╠═1ae6196c-478c-47e7-9a4d-cd7d946034aa
+# ╟─1f6cf151-4880-4325-ba60-26623300d550
+# ╠═c13e582d-c575-4fbc-b540-b859266468ba
 # ╠═8e543167-d872-4a97-a4a5-93bbd0eafbb8
