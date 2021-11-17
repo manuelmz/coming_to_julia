@@ -300,16 +300,27 @@ md"""
 ### Functions
 On the other hand, in Julia a function is the abstract idea of a code block which takes a set of arguments (imput variables) and returns a different (possibly the same, but altered) set of variables.
 
-Functions can have methods. A method is a explicit implementation of a function which works only when each of the input variables have a determined type. 
+Functions can have methods. A method is an explicit implementation of a function which works only when each of the input variables have a determined type. This is made explicit in the definition of the function by attaching a type stamp to each argumen, for instance :
 
-If you do not specified the types of the input variables, the compiler creates a method which is expecting arguments of type Any (this is how Julia stores variables with unespeficied types), after you run your code once, calling the function with 
+~~~Julia
+function example_function(arg::some__type)
+	#= 
+		body of function here
+	=#
+	return function_output
+end
+~~~
+
+The declaration ::some___type, makes explicit the fact that we are implelemnting a method of the function example___function which only works when the  argument is of type some__type.
+
 """
 
-# ╔═╡ 443c655b-ad54-4c6b-929a-214837e2ee96
-
-
 # ╔═╡ 35c31230-f241-4fdf-9ff6-5ba65e50ad4f
+md"""
+If you do not specified the types of the input variables, the compiler creates a method which is expecting arguments of type Any (this is how Julia stores variables with unespeficied types), after you run your code once, calling the function with arguments of with given types, Julia stores a version of the function with a method defined for those specific types, this is at the heart of Julia speed. The next time you run the same code, then Julia knows which method to use.
 
+This also means that you can facilittate the compiler job by prividing more information, that is by declaring the types of the imput variables a given function is expecting, the more info the compiler has the easier the whole process in the precompilation stage is! 
+"""
 
 # ╔═╡ c6887b20-a8c3-4c39-b3b4-e8d7ad39363a
 
@@ -353,14 +364,168 @@ add_seven("1")
 
 # ╔═╡ aafd7c94-3466-4ae8-8572-58d8d1a8761a
 md"""
+### Abstraction with functions
 > Furthermore functions have their respective type, as such one can create functions whose arguments are variables of type Function, which return variables of type Function!
 """
 
 # ╔═╡ ae29e8b2-5393-493b-b097-32988b7572aa
+md"""
+We can give a nice example of this by constructing functionalities in order to handle the directional derivative of a two dimensional scalar field.
+"""
 
+# ╔═╡ e5b4a8f4-0ffe-4cb9-8eb5-8993f021986a
+md"""
+As a first step, say we have a single variable function $f(x)$, then the derivative at $x=a$ $f'(a)$ can be computed using finite differences
+"""
 
-# ╔═╡ fdd3d3f1-0a47-455a-9d69-324e3989e140
+# ╔═╡ 159f0819-bec0-4250-a83b-1fb260dba9dc
+function finite_difference_deriv(f::Function, a, h=1e-3)
+	dev = (f(a + h) - f(a))/h
+	return dev
+end
 
+# ╔═╡ 1c393af5-9e3c-447a-9248-93b515bc768a
+md"""
+Now, for the situation of a two dimensional field, that is, a function of the form $f(x,y)$, we can compute the partial derivatives by fixing the value of the second variable to be a constant.
+
+A handy way of doing this is by using anonymous functions. In Julia this are represented by the statement 
+
+~~~Julia
+x -> x^3
+~~~
+
+this is the function that sends $x$ into its cube, and it will work as long as the input is of some type for which the cube operation has a defined method!
+
+"""
+
+# ╔═╡ 2d48bfee-d837-408a-85d4-66fe7909f957
+md"""
+The partial derivatives with respect to $x$ and $y$ are then
+"""
+
+# ╔═╡ 708d6a83-908a-48e1-85d8-0ed4941b0c57
+function ∂x(field::Function, a, b)
+	fx = x -> field(x, b)
+	return finite_difference_deriv(fx, a)
+end
+
+# ╔═╡ 7bd50fa9-6c9a-43be-aab1-b4dc329d9150
+function ∂y(field::Function, a, b)
+	fy = x -> field(a, x)
+	return finite_difference_deriv(fy, b)
+end
+
+# ╔═╡ 6497f256-7148-4213-90e6-7da7238017ea
+md"""
+With this teo definitions we can then construct the directional derivative function
+"""
+
+# ╔═╡ b4e9dd48-bae3-458f-961b-ba82b42d133c
+function directional_deriv(field::Function, at_point::Vector, 
+	direction::Vector)
+	partialx = ∂x(field, at_point[1], at_point[2])
+	partialy = ∂y(field, at_point[1], at_point[2])
+
+	dire_deriv = dot(direction, [partialx, partialy])
+	return dire_deriv
+end
+
+# ╔═╡ 8a1a96ab-193a-4e6d-b38e-b8604921fc14
+md"""
+Let us work with the field 
+"""
+
+# ╔═╡ 49c61975-b142-4c78-b834-9491da779c6f
+my_2d_field(x::Real, y::Real) = 1 + x + y + x*y + x^2 - y^2
+
+# ╔═╡ b193eccd-40cc-4302-9282-647f1c625cce
+let 
+	xvals = -10:0.1:10
+	yvals = -10:0.1:10
+	
+	zvals = zeros(length(xvals), length(xvals))
+
+	for xx = 1:length(xvals)
+		for yy = 1:length(yvals)
+			zvals[xx, yy] = my_2d_field(xvals[xx], yvals[yy])
+		end
+	end
+	
+	plo = plot(title = "My two dimensional field", xlabel = "X", ylabel = "Y",
+		tickfontsize = 10)
+
+	heatmap!(xvals, yvals, zvals)
+
+	plo
+	
+end
+
+# ╔═╡ bfba8a10-7ee8-41c2-9262-a6a03d1171cf
+md"""
+Its directional derivative inthe direction of $(1/\sqrt{2}, 1/\sqrt{2})$, is given by
+"""
+
+# ╔═╡ 5b982a74-cce0-4c78-9881-e29916492f8e
+let 
+	xvals = -10:0.1:10
+	yvals = -10:0.1:10
+	
+	zvals = zeros(length(xvals), length(xvals))
+	dire = [1,1]./sqrt(2)
+	
+	for xx = 1:length(xvals)
+		for yy = 1:length(yvals)
+			zvals[xx, yy] = directional_deriv(my_2d_field, [xvals[xx], yvals[yy]], dire)
+		end
+	end
+	
+	plo = plot(title = "Directional derivative in the chosen direction", xlabel = "X",
+		ylabel = "Y", tickfontsize = 10)
+
+	heatmap!(xvals, yvals, zvals)
+
+	plo
+	
+end
+
+# ╔═╡ 898d17c5-a00b-4fc7-b9df-b16517a12a77
+md"""
+### Multiple dispatch
+
+This is similar to how in C/C++ or python you can overload operators. With the difference that in Julia you have more freedom. One can use multiple dispatch to overload **ANY** function. Given the way Julia was constructed, you do not need to make any special declarations in order to use multiple dispatch, all it takes is to define a new method for a given function which accepts new types. Then Julia adds that method automatically to the list of available methods for that function.
+
+Let us look at an example with our add__seven function
+"""
+
+# ╔═╡ bd6d855b-1ca1-4ba5-8432-f635177f404e
+#=
+function add_seven(arg::String)
+	return arg*"7"
+end
+=#
+
+# ╔═╡ fd43ab45-cf84-4ebc-870a-386b69851471
+add_seven("1")
+
+# ╔═╡ 5e3b6bd7-c058-4d9d-8d61-41555d9523ff
+md"""
+Now the function add_seven can handle impit variables of type String. We just added a second method for this function, notice how Julia tells us this is the case 
+
+(add_seven (generic function with 2 methods))
+"""
+
+# ╔═╡ 082d151b-3e57-4d7b-9f97-30bb94291ca9
+md"""
+The ohter highly beneficial aspect of multiple dispatch and type system in Julia, is how easy one can merge code together. It is very easy to extent the functionalities of excisting code to deal with your own defined types, or to build functionalities to deal with the defined types of some Julia package!
+
+This is nicely explained in [The unreasonable effectiveness of multiple dispatch](https://www.youtube.com/watch?v=kc9HwsxE1OY)
+"""
+
+# ╔═╡ 9590b73c-cda1-4f3d-aefd-da4829667684
+md"""
+##### tiny note:
+Before going an implementing a solution to tyne exercise #2 and looking at the provided solution, go and read through the notebook and arrays in Julia.  
+"""
 
 # ╔═╡ 47967a1f-c3d0-4ad4-a0f0-17eb832fe1b5
 md"""
@@ -498,15 +663,6 @@ md"""
 In order to build a little argument in favor of our end goal, many-body simulations with tensor networks, I want you to watch Katharine Hyatt's talk [Why I use Julia for quantum physics](https://www.youtube.com/watch?v=4giNd6HLUQg) delivered at PyData 2018!
 """
 
-# ╔═╡ 7e8d3daf-0617-40e0-969b-3be707cd2164
-
-
-# ╔═╡ cdcf0765-9eb8-4ec5-a92b-a0a38739d949
-
-
-# ╔═╡ 1ae6196c-478c-47e7-9a4d-cd7d946034aa
-
-
 # ╔═╡ 1f6cf151-4880-4325-ba60-26623300d550
 md"""
 ## Some helper functions
@@ -568,7 +724,7 @@ let
 end
 
 # ╔═╡ 8e543167-d872-4a97-a4a5-93bbd0eafbb8
-mediumbreak = html"<br><br>"
+mediumbreak = html"<br><br>";
 
 # ╔═╡ 31a9ad8b-766f-4fd1-87f1-9e9b9d2f82f9
 mediumbreak
@@ -594,7 +750,19 @@ mediumbreak
 # ╔═╡ 54c7af50-7a38-4d94-8975-015fbee8a1a6
 mediumbreak
 
+# ╔═╡ eb6cc082-c2f8-4f4a-9bb0-9be3198437da
+mediumbreak
+
+# ╔═╡ 031525be-98b4-4022-8697-68a59691a37a
+mediumbreak
+
+# ╔═╡ fdd3d3f1-0a47-455a-9d69-324e3989e140
+mediumbreak
+
 # ╔═╡ 381cb596-eb2f-47db-a71f-c62726572c67
+mediumbreak
+
+# ╔═╡ 1ae6196c-478c-47e7-9a4d-cd7d946034aa
 mediumbreak
 
 # ╔═╡ Cell order:
@@ -652,8 +820,7 @@ mediumbreak
 # ╠═52c44af0-8829-42b9-9a2b-4ab355227e21
 # ╟─6b104f30-46ee-44ee-8385-0af4ad106043
 # ╟─91d3a6ad-052b-4a50-bd76-0bf38a4f7261
-# ╠═443c655b-ad54-4c6b-929a-214837e2ee96
-# ╠═35c31230-f241-4fdf-9ff6-5ba65e50ad4f
+# ╟─35c31230-f241-4fdf-9ff6-5ba65e50ad4f
 # ╠═c6887b20-a8c3-4c39-b3b4-e8d7ad39363a
 # ╟─4408a2ab-af69-4253-bb37-7e040ed2bebb
 # ╠═091e3369-2900-4b1b-94f6-9ca65bb91352
@@ -665,9 +832,30 @@ mediumbreak
 # ╠═385ded73-68e6-44e5-bc66-f5deaaa0be63
 # ╟─54c7af50-7a38-4d94-8975-015fbee8a1a6
 # ╟─aafd7c94-3466-4ae8-8572-58d8d1a8761a
-# ╠═ae29e8b2-5393-493b-b097-32988b7572aa
-# ╠═fdd3d3f1-0a47-455a-9d69-324e3989e140
-# ╠═47967a1f-c3d0-4ad4-a0f0-17eb832fe1b5
+# ╟─ae29e8b2-5393-493b-b097-32988b7572aa
+# ╟─e5b4a8f4-0ffe-4cb9-8eb5-8993f021986a
+# ╠═159f0819-bec0-4250-a83b-1fb260dba9dc
+# ╟─1c393af5-9e3c-447a-9248-93b515bc768a
+# ╟─2d48bfee-d837-408a-85d4-66fe7909f957
+# ╠═708d6a83-908a-48e1-85d8-0ed4941b0c57
+# ╠═7bd50fa9-6c9a-43be-aab1-b4dc329d9150
+# ╠═6497f256-7148-4213-90e6-7da7238017ea
+# ╠═b4e9dd48-bae3-458f-961b-ba82b42d133c
+# ╟─8a1a96ab-193a-4e6d-b38e-b8604921fc14
+# ╠═49c61975-b142-4c78-b834-9491da779c6f
+# ╟─b193eccd-40cc-4302-9282-647f1c625cce
+# ╟─bfba8a10-7ee8-41c2-9262-a6a03d1171cf
+# ╟─5b982a74-cce0-4c78-9881-e29916492f8e
+# ╟─eb6cc082-c2f8-4f4a-9bb0-9be3198437da
+# ╟─898d17c5-a00b-4fc7-b9df-b16517a12a77
+# ╠═bd6d855b-1ca1-4ba5-8432-f635177f404e
+# ╠═fd43ab45-cf84-4ebc-870a-386b69851471
+# ╟─5e3b6bd7-c058-4d9d-8d61-41555d9523ff
+# ╟─082d151b-3e57-4d7b-9f97-30bb94291ca9
+# ╟─031525be-98b4-4022-8697-68a59691a37a
+# ╟─9590b73c-cda1-4f3d-aefd-da4829667684
+# ╟─fdd3d3f1-0a47-455a-9d69-324e3989e140
+# ╟─47967a1f-c3d0-4ad4-a0f0-17eb832fe1b5
 # ╟─29608a51-4161-4d7f-98bb-21616af4605b
 # ╟─eb123de0-3855-42a1-8b49-f69d3a4f59cf
 # ╠═b1954585-153b-46bf-bd99-b2b0e81e2036
@@ -689,8 +877,6 @@ mediumbreak
 # ╟─47d0112c-8acf-471f-998b-fad542372fed
 # ╟─381cb596-eb2f-47db-a71f-c62726572c67
 # ╟─2e9f9ab5-56e1-4194-b5d9-64a210615674
-# ╠═7e8d3daf-0617-40e0-969b-3be707cd2164
-# ╠═cdcf0765-9eb8-4ec5-a92b-a0a38739d949
 # ╠═1ae6196c-478c-47e7-9a4d-cd7d946034aa
 # ╟─1f6cf151-4880-4325-ba60-26623300d550
 # ╠═c13e582d-c575-4fbc-b540-b859266468ba
