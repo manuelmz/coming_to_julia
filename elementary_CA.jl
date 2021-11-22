@@ -45,7 +45,12 @@ second, define a subtype for the elementary CA. The only field is going ot be th
 """
 
 # ╔═╡ 7d7b36a4-8ef8-429b-b63c-20b3544f5a19
-struct elementary_CA <: one_dimensional_CA
+struct elmt_CA_PBC <: one_dimensional_CA
+	rule::Int64
+end
+
+# ╔═╡ 713deb78-5767-4864-bd97-f1583054f93f
+struct elmt_CA_OBC <: one_dimensional_CA
 	rule::Int64
 end
 
@@ -56,13 +61,12 @@ Now we need a function updating the state of a single cell based on the value of
 
 # ╔═╡ d3141164-1a6a-4963-9b52-05796f66407a
 ##-- updating the state of a cell
+"""
+	update_cell(past_cells::String, rule::Int64)
+computes the value of a cell in the next time step based on the
+values of the cell and its two neighbors in the previous step.
+"""
 function update_cell(past_cells::String, rule::Int64)
-    """
-    Updating the value of a given cell at the next time
-    using the values of the three adjacent cells in the previous time.
-    The updating procedure is based on the extremely nice tutorial by
-    which can be found at
-    """
     b_rule = digits(rule, base = 2, pad = 8)
     num = parse(Int, past_cells, base = 2) + 1
     new_val = b_rule[num]
@@ -75,112 +79,111 @@ Now we create function to fill the trajectory of the cellullar automata!
 """
 
 # ╔═╡ 2eadc93b-2c8d-4038-a035-9ab157b263d2
-##-- creating and evolving the automata
-function fill_automata(eCA::elementary_CA, size::Int, tsteps::Int, periodic::Bool,
-	icond::Int)
-    """
-    This function returns the trajectory of the automata given some parameters.
-    The parameters are:
-    size: the number of cells of the automata. Expecting an integer
-    tsteps: the number of time evoluton steps. Expecting an integer
-    rule: the rule defining the automata to be evolved. Expecting an integer
-    between 0 and 255
-    periodic: a bolean specifying whether to use periodic boundary conditions
-    or not
-    icond: an integer between 0 and 2, for the specification of the intiial
-    condition. A value of 0 indicates an intial condition given by a string of
-    ones with a cero in the middle. A value of 1 indicates an initial condition
-    given by a string of ceros with a one in the middle. A value of 2 indicates
-    a random intial condition.
-
-    returns an array of integers with dimensions tsteps x size, with the
-    trajectory of the automata.
-    """
-    ##-- Array to store the automata trajectory
-    CA = zeros(Int, tsteps, size)
+#--> evolving the automata with periodic boundary conditions
+function fill_automata(eCA::elmt_CA_PBC, size::Int, tsteps::Int, 
+	icond::Vector)
+	##-- Array to store the automata trajectory
+	CA = zeros(Int, tsteps, size)
+	CA[1,:] = icond
+		
 	rule = eCA.rule
-    ##-- Time evolving the automata
-    for ii = 1:tsteps
-        ##-- initializing the automata
-        if ii == 1
-            if icond == 0
-                #--> Initial condition is a cero at the middle surrounded by ones
-                CA[1,:] = ones(Int, size)
-                CA[1, Int(size/2)] = 0
-            elseif icond == 1
-                #--> initial condition is a one in the middle surrounded by ceros
-                CA[1, Int(size/2)] = 1
-            elseif icond == 2
-                #--> initial condition is a random string of zeros and ones
-                ##--> sampled uniformly
-                CA[ii,:] = rand((0,1), size)
-            end
-			
-        ##-- Time evolving based on the given initial condition
-        else
-            if periodic
-                #--> evolving the automata with periodic boundary conditions
-                for jj = 1:size
-                    #global old_val
-                    if jj == 1
-                        old_val = string(CA[ii-1, end])*
-						string(CA[ii-1, jj])*string(CA[ii-1, jj+1])
-                    elseif jj == size
-                        old_val = string(CA[ii-1, jj-1])*
-						string(CA[ii-1, jj])*string(CA[ii-1, 1])
-                    else
-                        old_val = string(CA[ii-1, jj-1])*
-						string(CA[ii-1, jj])*string(CA[ii-1, jj+1])
-                    end
-                    CA[ii,jj] = update_cell(old_val, rule)
-                end
-            else
-                #--> evolving the automata with hard wall boundary conditions
-                for jj = 1:size
-                    #global old_val
-                    if jj == 1
-                        old_val = "0"*string(CA[ii-1, jj])*string(CA[ii-1, jj+1])
-                    elseif jj == size
-                        old_val = string(CA[ii-1, jj-1])*
-						string(CA[ii-1, jj])*string(CA[ii-1, 1])
-                    else
-                        old_val = string(CA[ii-1, jj-1])*string(CA[ii-1, jj])*"0"
-                    end
-                    CA[ii,jj] = update_cell(old_val, rule)
-                end
-
-            end
-        #- end of boundary condition conditional
-        end
-    #-- end of time volution
-    end
-    return CA
-#-- end of function
+	##-- Time evolving the automata
+	for ii = 2:tsteps	
+	    for jj = 1:size
+	        #global old_val
+	        if jj == 1
+	            old_val = string(CA[ii-1, end])*string(CA[ii-1, jj])*
+				string(CA[ii-1, jj+1])
+	        elseif jj == size
+	            old_val = string(CA[ii-1, jj-1])*string(CA[ii-1, jj])*
+				string(CA[ii-1, 1])
+	        else
+	            old_val = string(CA[ii-1, jj-1])*string(CA[ii-1, jj])*
+				string(CA[ii-1, jj+1])
+	        end
+	        CA[ii,jj] = update_cell(old_val, rule)
+	    end
+	end
+	return CA
 end
 
 # ╔═╡ 897ad564-c175-4f2e-816d-c2f3f05c4948
 md"""
-### Let us now make some elementary cA trajectories ! 
+### Let us now make some elementary CA trajectories ! 
 """
+
+# ╔═╡ becc2faf-6725-4f93-9438-6894750457df
+
+
+# ╔═╡ a172eb57-b738-40e7-92f4-7a3aa1b4858b
+md"""
+## Helper functions
+"""
+
+# ╔═╡ 1ca90790-e908-460a-ad68-f1f3ee38bd30
+##-- build the initial state for the 1D automata 
+function get_1D_CA_initial_state(init::String, size::Int)
+	if init == "random"
+		return rand((0,1), size)
+	elseif init == "middle one" 
+		vec = ones(Int, size)
+        vec[Int(size/2)] = 0
+		return vec
+	elseif init == "middle zero"
+		vec = zeros(Int, size)
+        vec[Int(size/2)] = 1
+		return vec
+	elseif init == "two rand zeros"
+		vec = ones(Int, size)
+        vec[rand(1:1:size)] = 0
+		vec[rand(1:1:size)] = 0
+		return vec
+	end
+end 
 
 # ╔═╡ 4b5301bf-c0e5-4a3b-98d0-c7eaf6b01334
 ##-- parameters for the cellullar automata and the 
 begin
 	size = 100
 	steps = 100
-	periodic = true
-	icond = 2  
+	icond = get_1D_CA_initial_state("two rand zeros", size)  
 	
 	#rule = rand(0:1:255)
-	rule = 106
+	rule = 195
 	"Rule is " * string(rule) 
 end;
+
+# ╔═╡ 288c2ae7-b71d-4d95-a462-9b6c42d7bdc8
+#--> evolving the automata with hard wall boundary conditions
+function fill_automata(eCA::elmt_CA_OBC, size::Int, tsteps::Int,
+	icond::Vector)
+	##-- Array to store the automata trajectory
+	CA = zeros(Int, tsteps, size)
+	CA[1,:] = icond
+		
+	rule = eCA.rule
+	for ii = 2:steps
+	    for jj = 1:size
+	        #global old_val
+	        if jj == 1
+	            old_val = "0"*string(CA[ii-1, jj])*string(CA[ii-1, jj+1])
+	        elseif jj == size
+	            old_val = string(CA[ii-1, jj-1])*
+				string(CA[ii-1, jj])*string(CA[ii-1, 1])
+	        else
+	            old_val = string(CA[ii-1, jj-1])*string(CA[ii-1, jj])*"0"
+	        end
+	        CA[ii,jj] = update_cell(old_val, rule)
+	    end
+	end
+	return CA
+end
 
 # ╔═╡ 6f725ba9-71b0-4a5e-a5a1-8e9bfbd98c9f
 let
 	##-- delcaring the automata and evolving it!
-	my_eCA = elementary_CA(rule)
-	CA_trajetory = fill_automata(my_eCA, size, steps, periodic, icond)
+	my_eCA = elmt_CA_PBC(rule)
+	CA_trajetory = fill_automata(my_eCA, size, steps, icond)
 
 	##-- plotting the trajectorie!
 	plo = plot(xlabel = "cell number", ylabel = "step", tickfontsize = 12, 
@@ -192,13 +195,16 @@ let
 	plo
 end
 
-# ╔═╡ becc2faf-6725-4f93-9438-6894750457df
+# ╔═╡ a30efe3f-a8b7-42e4-9ad5-267563ebc877
 
 
 # ╔═╡ 7ee6a7ce-f524-470c-a70e-0eb3e79cf38b
 mediumbreak = html"<br><br>"
 
 # ╔═╡ ef1d6def-ba3a-4025-95f7-14e16b79df81
+mediumbreak
+
+# ╔═╡ bd8b198e-7829-4513-984c-b12a69d0e4e0
 mediumbreak
 
 # ╔═╡ Cell order:
@@ -209,13 +215,19 @@ mediumbreak
 # ╠═85c5d33a-30ae-4ae4-a41e-2ac0e5c97c38
 # ╟─1bdc2d8d-bd56-4b7d-aa96-ffc167cbff20
 # ╠═7d7b36a4-8ef8-429b-b63c-20b3544f5a19
+# ╠═713deb78-5767-4864-bd97-f1583054f93f
 # ╟─5e63c67f-f029-40d0-bae2-8d33d369e16b
 # ╠═d3141164-1a6a-4963-9b52-05796f66407a
 # ╟─bbd852f9-6cad-481f-8d12-4490c2a0c7b5
-# ╟─2eadc93b-2c8d-4038-a035-9ab157b263d2
+# ╠═2eadc93b-2c8d-4038-a035-9ab157b263d2
+# ╠═288c2ae7-b71d-4d95-a462-9b6c42d7bdc8
 # ╟─ef1d6def-ba3a-4025-95f7-14e16b79df81
 # ╟─897ad564-c175-4f2e-816d-c2f3f05c4948
 # ╠═4b5301bf-c0e5-4a3b-98d0-c7eaf6b01334
-# ╟─6f725ba9-71b0-4a5e-a5a1-8e9bfbd98c9f
+# ╠═6f725ba9-71b0-4a5e-a5a1-8e9bfbd98c9f
 # ╠═becc2faf-6725-4f93-9438-6894750457df
+# ╠═bd8b198e-7829-4513-984c-b12a69d0e4e0
+# ╟─a172eb57-b738-40e7-92f4-7a3aa1b4858b
+# ╠═1ca90790-e908-460a-ad68-f1f3ee38bd30
+# ╠═a30efe3f-a8b7-42e4-9ad5-267563ebc877
 # ╟─7ee6a7ce-f524-470c-a70e-0eb3e79cf38b
