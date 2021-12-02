@@ -1,10 +1,13 @@
-# coming_to_julia
-This is a collection of Pluto notebooks aimed at introducing the Julia language to folks who have experience in "scientific computing" with other languages. 
-The focus is on two main aspects:
+# Coming to julia
+This is a collection of Pluto notebooks aimed at introducing the Julia programing language to folks who have previous experience in scientific computing.
 
-  - The basics of Julia as a programing language
-  - How to deal with arrays in Julia
+## Brief description of the notebooks 
+The different notebooks deal with the following aspects:
+  - **The notebook julia_fundamentals.jl** deals with the fundamentals of the Julia programing language. What was Julia invented for? What can it accomplish? The basics of Julia syntaxis, and the core of Julia, the type system and functions (including the idea of multiple dipatch)
+  - **The notebook arrays_in_julia.jl** deals with the basics of array construction, manipulation and operations in Julia. As an example, we look at different functionalities which come with the Linear Algebra package
 
-Then some exercises implementing time evolution of elementary cellular automata and quantum cellular autoamata will be explored.
+After these two notebooks covering some basic aspects of Julia, the rest of notebooks present examples applied to different problems in physics, computer science, and applied mathematics:
+  - **The notebook elementary_CA.jl** gives an implementation of the elementary one dimensional cellular automata
+  - 
 
-There is some interest in learning how to use the ITensors.jl package to run DMRG calculations, a notebook explainig the basics will be included. Some other example notebooks might be added in the future. 
+I am planning on exnapnding the number of notebooks providing examples.
