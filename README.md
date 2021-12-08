@@ -10,4 +10,4 @@ After these two notebooks covering some basic aspects of Julia, the rest of note
   - **The notebook elementary_CA.jl** gives an implementation of the elementary one dimensional cellular automata
   - 
 
-I am planning on exnapnding the number of notebooks providing examples.
+I am planning on expanding the number of notebooks providing examples.
